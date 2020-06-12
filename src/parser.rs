@@ -1006,11 +1006,7 @@ impl Parser {
         let table_name = self.parse_object_name()?;
         let (columns, constraints) = self.parse_columns()?;
         self.expect_keywords(&[Keyword::STORED, Keyword::AS])?;
-        let file_format = self
-            .parse_identifier()?
-            .value
-            .to_ascii_uppercase()
-            .parse::<FileFormat>()?;
+        let file_format = self.parse_file_format()?;
 
         self.expect_keyword(Keyword::LOCATION)?;
         let location = self.parse_literal_string()?;
@@ -1555,6 +1551,22 @@ impl Parser {
             }
         }
         Ok(ObjectName(idents))
+    }
+
+    pub fn parse_file_format(&mut self) -> Result<FileFormat, ParserError> {
+        match self.next_token() {
+            Token::Word(w) => match w.keyword {
+                Keyword::AVRO => Ok(FileFormat::AVRO),
+                Keyword::JSONFILE => Ok(FileFormat::JSONFILE),
+                Keyword::ORC => Ok(FileFormat::ORC),
+                Keyword::PARQUET => Ok(FileFormat::PARQUET),
+                Keyword::RCFILE => Ok(FileFormat::RCFILE),
+                Keyword::SEQUENCEFILE => Ok(FileFormat::SEQUENCEFILE),
+                Keyword::TEXTFILE => Ok(FileFormat::TEXTFILE),
+                _ => self.expected("fileformat", Token::Word(w)),
+            },
+            unexpected => self.expected("fileformat", unexpected),
+        }
     }
 
     /// Parse a simple one-word identifier (possibly quoted, possibly a keyword)
